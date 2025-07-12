@@ -1,23 +1,3 @@
-# Build stage
-FROM python:3.9-slim as builder
-
-# Install system dependencies required for building Python packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc python3-dev libpq-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Create and activate virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install uvloop==0.17.0  # Explicitly install for Linux performance
-
-# Runtime stage
 FROM python:3.9-slim
 
 # Install runtime system dependencies
@@ -52,10 +32,5 @@ ENV PYTHONUNBUFFERED=1 \
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:$UVICORN_PORT/health || exit 1
 
-# Run with uvloop for better performance on Linux
-CMD ["uvicorn", "app.main:app", \
-     "--host", "$UVICORN_HOST", \
-     "--port", "$UVICORN_PORT", \
-     "--workers", "$UVICORN_WORKERS", \
-     "--loop", "uvloop", \
-     "--no-access-log"]
+# Fixed CMD instruction (Solution 1)
+CMD uvicorn app.main:app --host $UVICORN_HOST --port $UVICORN_PORT --workers $UVICORN_WORKERS --loop uvloop --no-access-log
