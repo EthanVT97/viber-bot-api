@@ -2,11 +2,57 @@ version: "3.8"
 
 services:
   api:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "${HOST_PORT:-8000}:${CONTAINER_PORT:-8000}"
     volumes:
       - ./logs:/app/logs
+      - ./app:/app/app  # For development hot-reloading
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=${CONTAINER_PORT:-8000}
+      - UVICORN_WORKERS=${WORKERS:-4}
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${CONTAINER_PORT:-8000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+  postgres_data:
