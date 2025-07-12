@@ -2,22 +2,294 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>API Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Dashboard | Viber Bot Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .log-entry { padding: 8px; margin: 4px 0; background: #f5f5f5; }
-        .timestamp { color: #666; font-size: 0.9em; }
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+        }
+        
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f8f9fc;
+        }
+        
+        .navbar {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .log-card {
+            border-left: 0.25rem solid var(--primary-color);
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+            transition: transform 0.2s;
+        }
+        
+        .log-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .timestamp {
+            font-size: 0.8rem;
+            color: #858796;
+        }
+        
+        .log-info {
+            border-left-color: var(--info-color);
+        }
+        
+        .log-warning {
+            border-left-color: var(--warning-color);
+        }
+        
+        .log-error {
+            border-left-color: var(--danger-color);
+        }
+        
+        .log-success {
+            border-left-color: var(--success-color);
+        }
+        
+        #refresh-btn {
+            cursor: pointer;
+            transition: transform 0.5s;
+        }
+        
+        #refresh-btn:hover {
+            transform: rotate(180deg);
+        }
+        
+        .spinner {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <h1>API Activity Logs</h1>
-    <div id="logs">
-        {% for log in logs %}
-        <div class="log-entry">
-            <span class="timestamp">{{ log.split(' - ')[0] }}</span>
-            <span class="message">{{ ' - '.join(log.split(' - ')[1:]) }}</span>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-robot"></i> Viber Bot Dashboard
+            </a>
+            <div class="d-flex">
+                <span class="navbar-text me-3">
+                    <i class="bi bi-clock-history"></i> <span id="current-time"></span>
+                </span>
+                <button id="refresh-btn" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
         </div>
-        {% endfor %}
+    </nav>
+
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Total Logs</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-logs">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-journal-text fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    API Status</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="api-status">Online</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Active Users</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-users">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-people fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Errors (24h)</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="error-count">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-exclamation-triangle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Section -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+                <div>
+                    <div class="spinner-border spinner-border-sm text-primary spinner" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="logsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Message</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-container">
+                            {% for log in logs %}
+                            <tr>
+                                <td class="timestamp">{{ log.split(' - ')[0] }}</td>
+                                <td>
+                                    {% if 'ERROR' in log %}
+                                    <span class="badge bg-danger">Error</span>
+                                    {% elif 'WARNING' in log %}
+                                    <span class="badge bg-warning text-dark">Warning</span>
+                                    {% elif 'INFO' in log %}
+                                    <span class="badge bg-info">Info</span>
+                                    {% else %}
+                                    <span class="badge bg-primary">Debug</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ ' - '.join(log.split(' - ')[1:]) }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary view-details" data-log="{{ log }}">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Log Details Modal -->
+    <div class="modal fade" id="logDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Log Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="log-details-content" class="p-3 bg-light rounded"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Refresh logs
+        document.getElementById('refresh-btn').addEventListener('click', function() {
+            const spinner = document.querySelector('.spinner');
+            spinner.style.display = 'inline-block';
+            
+            fetch('/admin?refresh=true')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newLogs = doc.getElementById('logs-container').innerHTML;
+                    document.getElementById('logs-container').innerHTML = newLogs;
+                    updateStats();
+                })
+                .finally(() => {
+                    spinner.style.display = 'none';
+                });
+        });
+
+        // View log details
+        document.querySelectorAll('.view-details').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const logData = this.getAttribute('data-log');
+                document.getElementById('log-details-content').textContent = logData;
+                const modal = new bootstrap.Modal(document.getElementById('logDetailsModal'));
+                modal.show();
+            });
+        });
+
+        // Update stats
+        function updateStats() {
+            const logs = document.querySelectorAll('#logs-container tr');
+            document.getElementById('total-logs').textContent = logs.length;
+            
+            const errorCount = Array.from(logs).filter(log => 
+                log.querySelector('.badge').classList.contains('bg-danger')).length;
+            document.getElementById('error-count').textContent = errorCount;
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            
+            // Simulate active users (replace with real data)
+            setInterval(() => {
+                const randomUsers = Math.floor(Math.random() * 50) + 10;
+                document.getElementById('active-users').textContent = randomUsers;
+            }, 5000);
+        });
+    </script>
 </body>
-</html>
+                                </html>
