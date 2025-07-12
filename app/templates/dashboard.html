@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log-entry { padding: 8px; margin: 4px 0; background: #f5f5f5; }
+        .timestamp { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>API Activity Logs</h1>
+    <div id="logs">
+        {% for log in logs %}
+        <div class="log-entry">
+            <span class="timestamp">{{ log.split(' - ')[0] }}</span>
+            <span class="message">{{ ' - '.join(log.split(' - ')[1:]) }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
